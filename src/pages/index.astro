@@ -1,5 +1,4 @@
 ---
-import { createClient, type RedisJSON } from 'redis'
 import { type ArticleData, extract } from '@extractus/article-extractor'
 
 import AddressBar from '../components/AddressBar.astro'
@@ -7,11 +6,6 @@ import Post from '../components/Post.astro'
 import App from '../layouts/App.astro'
 import Library from '../components/Library.astro'
 import Footer from '../components/Footer.astro'
-
-// Initialize Redis client
-const client = createClient()
-client.on('error', (err) => console.error('Redis Client Error', err))
-await client.connect()
 
 // Disable prerendering for dynamic content
 export const prerender = false
@@ -35,27 +29,10 @@ while (url?.startsWith(Astro.url.origin)) {
 
 // Process article extraction only if a valid URL is provided
 if (url && url !== '/' && url !== '') {
-  const cacheKey = 'cozy:url:' + url
-
   try {
-    // Check if article exists in Redis cache
-    const exists = await client.exists(cacheKey)
-
-    if (exists) {
-      // Retrieve cached article data
-      article = (await client.json.get(cacheKey)) as ArticleData
-      console.log('>>> Using cached content', article.url)
-    } else {
-      // Fetch article from the web
-      article = await extract(url)
-      console.log('>>> Using fetched content', article?.url)
-
-      if (article !== null && article.url) {
-        // Cache the fetched article in Redis
-        await client.json.set(cacheKey, '$', article as RedisJSON)
-        console.log('>>> Added to cache', article.url)
-      }
-    }
+    // Fetch article from the web
+    article = await extract(url)
+    console.log('>>> Using fetched content', article?.url)
   } catch (error) {
     // Log error and continue with null article
     console.error('Error processing article:', error)
